@@ -16,7 +16,8 @@ main()
   u_char width = screenWidth, height = screenHeight;
 
   clearScreen(COLOR_BLACK);
-  draw_triangle();
+  draw_square(0,40,COLOR_BLUE);
+  // draw_triangle(0,0,80,COLOR_GOLD);
    
   
   // drawString5x7(20,20, "hello", COLOR_GREEN, COLOR_RED);
@@ -32,15 +33,16 @@ void draw_asterisk(int x, int y, int color){
      }  
 }
 
-void draw_square(){ // Draws a square that is filled in. Color : COLOR_GOLD.
+void draw_square(int col, int row, int color){ // Draws a square that is filled.
    for(int i = 80; i > 0;i--)
     for(int j = 0; j < 80; j++)
-      drawPixel(i,j,COLOR_GOLD);
+      drawPixel(i,j,color);
 }
 
-void draw_triangle(){ //Draw a right triangle size of 80 pixels. Color: COLOR_GOLD.
-    for(int i = 0; i < 80;i++)
-      for(int j = 0; j < (i+1); j++)
-	drawPixel(j,i,COLOR_GOLD);
+void draw_triangle(int col, int row, int size, int color){ //Draw a right triangle size of 80 pixels. Color: COLOR_GOLD.
+    for(int i = col; i < size;i++)
+      for(int j = row; j < (i+1); j++)
+	drawPixel(j,i,color);
 
 }
+

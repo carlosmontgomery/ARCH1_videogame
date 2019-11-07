@@ -59,8 +59,8 @@ void drawChar5x7(u_char col, u_char row, char c,
  *  \param colorBGR Color of rectangle in BGR
  */
 void drawRectOutline(u_char colMin, u_char rowMin, u_char width, u_char height,u_int colorBGR);
-void draw_square();
-void draw_triangle();
+void draw_square(int col, int row, int color);
+void draw_triangle(int col, int row, int size, int color);
 #endif // included
 
 
