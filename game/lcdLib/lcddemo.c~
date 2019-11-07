@@ -1,0 +1,36 @@
+/** \file lcddemo.c
+ *  \brief A simple demo that draws a string and circle
+ */
+
+#include <libTimer.h>
+#include "lcdutils.h"
+#include "lcddraw.h"
+#include <stdio.h>
+
+/** Initializes everything, clears the screen, draws "hello" and the circle */
+int
+main()
+{
+  configureClocks();
+  lcd_init();
+  u_char width = screenWidth, height = screenHeight;
+
+  clearScreen(COLOR_BLACK);
+   
+   for(int x = 80; x > 0;x--)
+    for(int y = 0; y < 80; y++)
+    drawPixel(x,y,COLOR_GOLD);
+   /* for(int i = 0; i< 80;i++){
+     drawPixel(i,i,COLOR_GOLD);}
+   for(int j = 0; j<80;j++){
+     drawPixel(j,40,COLOR_GOLD);
+     }*/
+
+   for(int k = 80; k > 0; k--){
+       drawPixel(k,k,COLOR_WHITE);
+   }
+  // drawString5x7(20,20, "hello", COLOR_GREEN, COLOR_RED);
+
+  // fillRectangle(30,30, 60, 60, COLOR_ORANGE);
+  
+}
