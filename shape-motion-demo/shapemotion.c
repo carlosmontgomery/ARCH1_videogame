@@ -13,58 +13,71 @@
 #include <p2switches.h>
 #include <shape.h>
 #include <abCircle.h>
+#include <stdlib.h>
+
 
 #define GREEN_LED BIT6
-
-
-AbRect rect10 = {abRectGetBounds, abRectCheck, {10,10}}; /**< 10x10 rectangle */
-AbRArrow rightArrow = {abRArrowGetBounds, abRArrowCheck, 30};
-
-AbRectOutline fieldOutline = {	/* playing field */
+#define S1 !(p2sw_read() &BIT0)
+#define S2 !(p2sw_read() &BIT1)
+#define S3 !(p2sw_read() &BIT2)
+#define S4 !(p2sw_read() &BIT3)
+int game_score = 0;
+int game_status = 1; //used to determine with game is still going 
+AbRect rect10 = {abRectGetBounds, abRectCheck, {1,2}}; /**< 10x10 rectangle */
+AbRect rect8 = {abRectGetBounds, abRectCheck,{8,4}};
+AbRectOutline fieldOutline = {	
   abRectOutlineGetBounds, abRectOutlineCheck,   
   {screenWidth/2 - 10, screenHeight/2 - 10}
 };
 
-Layer layer4 = {
-  (AbShape *)&rightArrow,
-  {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
+Layer bullet = {
+  (AbShape *)&rect10,
+  {(screenWidth/2)+1010, screenHeight+15}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_PINK,
+  COLOR_BLUE,
   0
 };
   
 
-Layer layer3 = {		/**< Layer with an orange circle */
+Layer layer3 = {		/**< Layer with an asteriod */
   (AbShape *)&circle8,
-  {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
+  {(screenWidth/2)+15, 20}, 
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_VIOLET,
-  &layer4,
+  COLOR_GRAY,
+  &bullet,
 };
 
 
+Layer layer2 = {		/**< Layer with an asteriod */
+  (AbShape *)&circle6,
+  {(screenWidth/2),32 }, /**< center {screenWidth/2, screenHeight/2}, */
+  {0,0}, {0,0},				    /* last & next pos */
+  COLOR_GRAY,
+  &layer3,
+};
+
+
+Layer layer1 = {		/**< Layer with an asteriod */
+  (AbShape *)&circle6,
+  {(screenWidth/2)+5, 38}, /**< center {screenWidth/2, screenHeight/2}, */
+  {0,0}, {0,0},				    /* last & next pos */
+  COLOR_GRAY,
+  &layer2,
+};
 Layer fieldLayer = {		/* playing field as a layer */
   (AbShape *) &fieldOutline,
   {screenWidth/2, screenHeight/2},/**< center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_BLACK,
-  &layer3
+  COLOR_YELLOW,
+  &layer1
 };
 
-Layer layer1 = {		/**< Layer with a red square */
-  (AbShape *)&rect10,
-  {screenWidth/2, screenHeight/2}, /**< center */
+Layer layer0 = {		/**< Layer player */
+  (AbShape *)&rect8,//&circle14
+  {(screenWidth/2)-10, (screenHeight/2)+60}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_RED,
-  &fieldLayer,
-};
-
-Layer layer0 = {		/**< Layer with an orange circle */
-  (AbShape *)&circle14,
-  {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
-  {0,0}, {0,0},				    /* last & next pos */
-  COLOR_ORANGE,
-  &layer1,
+  COLOR_RED, //COLOR_ORANGE
+  &fieldLayer, //&layer1
 };
 
 /** Moving Layer
@@ -78,10 +91,12 @@ typedef struct MovLayer_s {
 } MovLayer;
 
 /* initial value of {0,0} will be overwritten */
-MovLayer ml3 = { &layer3, {1,1}, 0 }; /**< not all layers move */
-MovLayer ml1 = { &layer1, {1,2}, &ml3 }; 
-MovLayer ml0 = { &layer0, {2,1}, &ml1 }; 
-
+// MovLayer ml4 = { &layer4, {1,1}, 0};
+MovLayer ml5 = { &bullet, {0,0}, 0};
+MovLayer ml4 = {&layer3, {-1,1},&ml5}; 
+MovLayer ml3 = { &layer2, {1,1}, &ml4};// < not all layers move //purple circle
+MovLayer ml2 = { &layer1, {1,1}, &ml3}; //&layer1, {1,2}, &m13, red square 
+MovLayer ml0 = { &layer0, {0,0}, &ml2 }; //{2,1}
 void movLayerDraw(MovLayer *movLayers, Layer *layers)
 {
   int row, col;
@@ -145,10 +160,21 @@ void mlAdvance(MovLayer *ml, Region *fence)
     } /**< for axis */
     ml->layer->posNext = newPos;
   } /**< for ml */
+ }
+
+void collision(MovLayer *ml){
+  u_char axis;
+  u_char cnt = 0;
+  ml = ml->next;
+  for(;ml && cnt < 3; ml = ml->next){
+  if(ml0.layer->pos.axes[0] < ml->layer->pos.axes[0] +10 && ml0.layer->pos.axes[0] > ml->layer->pos.axes[0] - 10 && ml0.layer->pos.axes[1] < ml->layer->pos.axes[1] +10 && ml0.layer->pos.axes[1] > ml->layer->pos.axes[1] - 10){
+    game_status = 0;
+    return;
+  }
+  cnt++;
+  }
 }
-
-
-u_int bgColor = COLOR_BLUE;     /**< The background color */
+u_int bgColor = COLOR_BLACK;     /**< The background color */
 int redrawScreen = 1;           /**< Boolean for whether screen needs to be redrawn */
 
 Region fieldFence;		/**< fence around playing field  */
@@ -160,15 +186,15 @@ Region fieldFence;		/**< fence around playing field  */
 void main()
 {
   P1DIR |= GREEN_LED;		/**< Green led on when CPU on */		
-  P1OUT |= GREEN_LED;
+  P1OUT |= 0;
 
   configureClocks();
   lcd_init();
   shapeInit();
-  p2sw_init(1);
+  p2sw_init(BIT0 | BIT1 | BIT2 | BIT3);
 
   shapeInit();
-
+  drawString5x7(10,15, "Level:", COLOR_WHITE, COLOR_BLACK);
   layerInit(&layer0);
   layerDraw(&layer0);
 
@@ -178,8 +204,8 @@ void main()
 
   enableWDTInterrupts();      /**< enable periodic interrupt */
   or_sr(0x8);	              /**< GIE (enable interrupts) */
-
-
+  
+  
   for(;;) { 
     while (!redrawScreen) { /**< Pause CPU if screen doesn't need updating */
       P1OUT &= ~GREEN_LED;    /**< Green led off witHo CPU */
@@ -187,21 +213,37 @@ void main()
     }
     P1OUT |= GREEN_LED;       /**< Green led on when CPU on */
     redrawScreen = 0;
-    movLayerDraw(&ml0, &layer0);
+    if(!game_status)
+      drawString5x7(40,80,"GAME OVER", COLOR_RED,COLOR_BLACK);
+    else
+      movLayerDraw(&ml0, &layer0);
   }
 }
 
 /** Watchdog timer interrupt handler. 15 interrupts/sec */
-void wdt_c_handler()
-{
+void wdt_c_handler(){
   static short count = 0;
   P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
   count ++;
-  if (count == 15) {
+  if (count == 15){
+    u_int switches = p2sw_read();
+    if(!game_status){
+      return;
+    }
+    collision(&ml0);
     mlAdvance(&ml0, &fieldFence);
-    if (p2sw_read())
-      redrawScreen = 1;
+    if(S1){
+      ml0.velocity.axes[0] = -4;
+    }
+    if (S2){
+      ml0.velocity.axes[0] = 4;
+    }
+    else{
+      ml0.velocity.axes[0];
+    }
+    
+    redrawScreen = 1;
     count = 0;
-  } 
+}
   P1OUT &= ~GREEN_LED;		    /**< Green LED off when cpu off */
 }
